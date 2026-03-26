@@ -6,21 +6,34 @@ import pynput
 import enum
 from collections import deque
 
+import cflib
+import time
+from cflib.crazyflie import Crazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
 PARSER = argparse.ArgumentParser(description="Swarm Drone Controller")
 PARSER.add_argument("--uri", type=str, required=True, help="URI of the drone to connect to")
 
+cflib.crtp.init_drivers()
 
 class SwarmDroneController:
-    DEFAULT_H: float = 0.0 # m
-    DEFAULT_V: float = 50 # cm/s
-    DEFAULT_FREQ: float = 100 # Hz
+    DEFAULT_H: float = 0.1 # m
+    DEFAULT_V: float = 1 # cm/s
+    DEFAULT_FREQ: float = 2000 # Hz
 
     def __init__(self, uri: str, q: deque,
                  drone_vel: float | None = None, freq: float | None = None) -> None:
-        self.drone: SyncCrazyflie = SyncCrazyflie(uri)
+        print(f"uri: {uri}")
+        self.drone: SyncCrazyflie = SyncCrazyflie("radio://0/80/2M/E7E7E7E7E7", cf=Crazyflie(rw_cache='./cache'))
+
+        self.drone.open_link()
+
+        response = self.drone.cf.platform.send_arming_request(True)
+
+        self.drone.cf.commander.send_setpoint(0, 0, 0, 0)
+        time.sleep(1)
+        print("conencted")
         self.commander: MotionCommander = MotionCommander(
             crazyflie=self.drone,
             default_height=self.DEFAULT_H
@@ -37,7 +50,10 @@ class SwarmDroneController:
             target=self._controller_loop,
             daemon=True
         )
+        # self.commander.take_off(velocity=self.drone_vel / 100)
         self.thread.start()
+        self.thrust = 16000
+        self.thrust_jump: int = 1500
 
     def set_freq(self, n_freq: float) -> None:
         assert (n_freq > 0)
@@ -48,7 +64,8 @@ class SwarmDroneController:
         self.drone_vel = n_vel
         
     def _calc_dist(self) -> float:
-        return self.timestamp * self.drone_vel
+        # return self.timestamp * self.drone_vel / 100
+        return 0.001
         
     def _move_forward(self):
         self.commander.forward(distance_m=self._calc_dist())
@@ -63,33 +80,49 @@ class SwarmDroneController:
         self.commander.right(distance_m=self._calc_dist())
 
     def _move_up(self):
-        self.commander.up(distance_m=self._calc_dist())
-        
+        print(f"self.thrust: {self.thrust}")
+        self.thrust += self.thrust_jump
+        self.thrust = max(self.thrust, 0x0001)
+        self.thrust = min(self.thrust, 0xFFFE)
+        try: 
+            self.drone.cf.commander.send_setpoint(0, 0, 0, self.thrust)
+        except Exception as e:
+            print(f"Caught: {e}")
+
     def _move_down(self):
-        self.commander.down(distance_m=self._calc_dist()) 
-        
-    def move_on_key(self, key) -> None:
-        match key:
-            case pynput.keyboard.KeyCode.from_char('w'):
-                self._move_forward()
-            case pynput.keyboard.KeyCode.from_char('s'):
-                self._move_back()
-            case pynput.keyboard.KeyCode.from_char('a'): 
-                self._move_left()
-            case pynput.keyboard.KeyCode.from_char('d'):
-                self._move_right()
-            case pynput.keyboard.Key.space:
-                self._move_up()
-            case pynput.keyboard.Key.shift:
-                self._move_down()
-            case _:
-                pass
-            
+        print(f"self.thrust: {self.thrust}")
+        self.thrust -= self.thrust_jump
+        self.thrust = max(self.thrust, 0x0001)
+        self.thrust = min(self.thrust, 0xFFFE)
+        try: 
+            self.drone.cf.commander.send_setpoint(0, 0, 0, self.thrust)
+        except Exception as e:
+            print(f"Caught: {e}")
+
+    def move_on_key(self, key):
+        if key == pynput.keyboard.KeyCode.from_char('w'):
+            self._move_forward()
+        elif key == pynput.keyboard.KeyCode.from_char('s'):
+            self._move_back()
+        elif key == pynput.keyboard.KeyCode.from_char('a'):
+            self._move_left()
+        elif key == pynput.keyboard.KeyCode.from_char('d'):
+            self._move_right()
+        elif key == pynput.keyboard.Key.space:
+            self._move_up()
+        elif key == pynput.keyboard.Key.shift:
+            self._move_down()
+        else:
+            pass
+
     def _controller_loop(self):
         while True:
             if len(self.shared_queue) > 0:
                 event: KeyboardEvent = self.shared_queue.popleft()
-                if event.event_type == KeyboardEventType.PRESS:
+                if len(self.shared_queue) > 1:
+                    continue
+                elif event.event_type == KeyboardEventType.PRESS:
+                    print("Executing movement for key: ", event.key)
                     self.move_on_key(event.key)
 
         
@@ -136,6 +169,7 @@ class KeyboardReader:
             key=key,
             event_type=KeyboardEventType.RELEASE
         )
+        print(f"Key {key} released")
         self.shared_queue.append(event)
 
 # Reads the keyboard input all the time and exectues the corresponding drone movement func

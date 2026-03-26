@@ -1,0 +1,11 @@
+[project]
+name = "drone-control"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cflib>=0.1.31",
+    "pynput>=1.8.1",
+    "typing>=3.10.0.0",
+]
