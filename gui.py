@@ -45,7 +45,6 @@ class DroneControllerGUI(threading.Thread):
         self.thrust_bar_y_pos: int = self._screen.get_height() - self.thrust_bar_height - 50
 
     def _process_state_events(self):
-        """Drain state queue and apply updates."""
         while len(self.state_queue) > 0:
             event: Event = self.state_queue.popleft()
             if event.event_type == EventType.THRUST_UPDATE:
