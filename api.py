@@ -11,11 +11,6 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from events import Event, EventTarget, EventType
 
 
-PARSER = argparse.ArgumentParser(description="Swarm Drone Controller")
-PARSER.add_argument("--uri", type=str, required=True, help="URI of the drone to connect to")
-PARSER.add_argument("--gui", action='store_true', help="Whether to launch the GUI")
-
-
 class SwarmDroneController:
     DEFAULT_H: float = 0.1 # m
     DEFAULT_V: float = 1 # cm/s
