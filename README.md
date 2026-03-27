@@ -1,6 +1,8 @@
 
 # launch with uv
 
+https://docs.astral.sh/uv/
+
 ```
 uv sync
 ```
