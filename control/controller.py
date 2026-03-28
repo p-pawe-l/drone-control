@@ -1,6 +1,4 @@
-import threading
-import argparse
-from collections import deque
+import typing
 
 import cflib
 import time
@@ -8,10 +6,10 @@ from cflib.crazyflie import Crazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-from events import Event, EventTarget, EventType
+from master_slave_com import Slave, Event
 
-
-class SwarmDroneController:
+@typing.final
+class SwarmDroneController(Slave):
     DEFAULT_H: float = 0.1 # m
     DEFAULT_V: float = 1 # cm/s
     DEFAULT_FREQ: float = 2000 # Hz
@@ -19,8 +17,8 @@ class SwarmDroneController:
     MIN_THRUST: int = 0x0000
     MAX_THRUST: int = 0xFFFF
 
-    def __init__(self, uri: str, input_queue: deque, slave_queues: dict[EventTarget, deque],
-                 drone_vel: float | None = None, freq: float | None = None) -> None:
+    def __init__(self, uri: str):
+        super.__init__()
         cflib.crtp.init_drivers()
         self.drone: SyncCrazyflie = SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache'))
         self.drone.open_link()
@@ -83,7 +81,7 @@ class SwarmDroneController:
         self.commander.right(distance_m=self._calc_dist())
 
     def SET_THRUST_JUMP(self, jump: int) -> None:
-        assert 0x0000 < jump < 0xFFFF
+        assert self.MIN_THRUST < jump < self.MAX_THRUST
         self.thrust_jump = jump
 
     def SET_THRUST(self, thrust: int) -> None:
@@ -118,13 +116,14 @@ class SwarmDroneController:
             ))
 
     def _controller_loop(self):
-        while True:
-            if len(self.input_queue) > 0:
-                event: Event = self.input_queue.popleft()
-                if len(self.input_queue) > 1:
-                    continue
+        with self.drone as drone:
+            while True:
+                if len(self.input_queue) > 0:
+                    event: Event = self.input_queue.popleft()
+                    if len(self.input_queue) > 1:
+                        continue
 
-                if event.event_type == EventType.INCREASE_THRUST:
-                    self.increase_thrust()
-                elif event.event_type == EventType.DECREASE_THRUST:
-                    self.decrease_thrust()
+                    if event.event_type == EventType.INCREASE_THRUST:
+                        self.increase_thrust()
+                    elif event.event_type == EventType.DECREASE_THRUST:
+                        self.decrease_thrust()

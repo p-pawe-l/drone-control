@@ -3,11 +3,10 @@ import pynput
 import typing
 from collections import deque
 
-from events import Event, EventTarget, EventType
-
+from master_slave_com import Slave
 
 @typing.final
-class KeyboardReader(threading.Thread):
+class KeyboardReader(Slave):
     def __init__(self, shared_queue: deque) -> None:
         super().__init__(daemon=True)
         self.shared_queue: deque = shared_queue
