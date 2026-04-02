@@ -41,4 +41,5 @@ uv run run.py -t
 
 Visualization:
 
+![vis](docs/tui_intro.png)
 ![vis](docs/tui.png)
