@@ -1,24 +1,22 @@
 import pygame
-import threading
-from collections import deque
+import typing
 
-from events import Event, EventTarget, EventType
+from master_slave_com import EventType
+from master_slave_com import Slave
+from control import SwarmDroneController
 
 
-class DroneControllerGUI(threading.Thread):
-    FPS: int = 60
+class DroneControllerGUI(Slave):
+    SLAVE_NAME: str = "GUI"
     WINDOW_TITLE: str = "Drone Controller GUI"
+    FPS: int = 60
     FONT_SIZE: int = 36
 
-    def __init__(self, command_queue: deque, state_queue: deque, width=800, height=600):
-        super().__init__(daemon=True)
-        self.command_queue: deque = command_queue
-        self.state_queue: deque = state_queue
-
-        # Local thrust state, updated from events
-        self._thrust: int = 0
-        self._min_thrust: int = 0
-        self._max_thrust: int = 0xFFFF
+    def __init__(self, master, width=800, height=600):
+        # Set all attrs before super().__init__() since Slave calls self.start()
+        self._thrust: int | None = None
+        self._min_thrust: int | None = None
+        self._max_thrust: int | None = None
 
         pygame.init()
         self._screen: pygame.Surface = pygame.display.set_mode((width, height))
@@ -28,40 +26,43 @@ class DroneControllerGUI(threading.Thread):
         self._clock: pygame.time.Clock = pygame.time.Clock()
         self._running: bool = True
 
-        self._thread_timeout: int = 3
-
-        # Thrust text info
         self._font = pygame.font.SysFont(None, self.FONT_SIZE)
         self.text_color: tuple[int, int, int] = (0x00, 0x00, 0x00)
 
-        # Thrust bar info
         self.thrust_bar_color: tuple[int, int, int] = (0x00, 0xFF, 0x00)
         self.thrust_bar_height: int = 450
         self.thrust_bar_width: int = 50
 
         self.fill_bar_padding: int = 5
 
-        self.thrust_bar_x_pos: int = self._screen.get_width() - 100
+        self.thrust_bar_x_pos: int = 50
         self.thrust_bar_y_pos: int = self._screen.get_height() - self.thrust_bar_height - 50
 
-    def _process_state_events(self):
-        while len(self.state_queue) > 0:
-            event: Event = self.state_queue.popleft()
-            if event.event_type == EventType.THRUST_UPDATE:
-                self._thrust = event.data['thrust']
-                self._min_thrust = event.data['min']
-                self._max_thrust = event.data['max']
+        super().__init__(master=master, slave_name=self.SLAVE_NAME)
 
-    def _send_command(self, event_type: EventType):
-        self.command_queue.append(Event(
-            target=EventTarget.CONTROLLER,
-            event_type=event_type,
-        ))
+    def run(self) -> None:
+        # Slave thread — no-op since pygame loop runs on the main thread via loop()
+        pass
+
+    def _process_state_events(self):
+        result = self.read_event()
+        while result is not None:
+            _, data = result
+            self._thrust = data.get('thrust', self._thrust)
+            self._min_thrust = data.get('min', self._min_thrust)
+            self._max_thrust = data.get('max', self._max_thrust)
+            result = self.read_event()
+
+    def _send_command(self, ev_t: EventType, **data: dict[str, typing.Any]):
+        self.send_event(
+            data=data,
+            receiver=SwarmDroneController.SLAVE_NAME,
+            event_type=ev_t,
+        )
 
     def _calc_thrust_ratio(self) -> float:
         delta: int = max(self._max_thrust - self._min_thrust, 1)
-        thrust_ratio = (self._thrust - self._min_thrust) / delta
-        return thrust_ratio
+        return (self._thrust - self._min_thrust) / delta
 
     def _draw_thrust_bar(self):
         outer_rect: pygame.Rect = pygame.Rect(self.thrust_bar_x_pos, self.thrust_bar_y_pos, self.thrust_bar_width, self.thrust_bar_height)
@@ -83,19 +84,18 @@ class DroneControllerGUI(threading.Thread):
         thrust_text = f"Thrust: {self._thrust:.2f}"
         text_surface = self._font.render(thrust_text, True, self.text_color)
         text_rect = text_surface.get_rect()
-        text_rect.topleft = (self.thrust_bar_x_pos - 10, self.thrust_bar_y_pos - 50)
+        text_rect.topleft = (self.thrust_bar_x_pos, self.thrust_bar_y_pos - 50)
         self._screen.blit(text_surface, text_rect)
 
-    def _run(self):
+    def loop(self):
+        """Blocking pygame loop — call from main thread."""
         while self._running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self._running = False
-
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self._running = False
-
                     elif event.key == pygame.K_SPACE:
                         self._send_command(EventType.INCREASE_THRUST)
                     elif event.key == pygame.K_LSHIFT:
@@ -104,17 +104,11 @@ class DroneControllerGUI(threading.Thread):
             self._process_state_events()
 
             self._screen.fill(self._bg_color)
-            self._draw_thrust_bar()
-            self._draw_thrust_text()
+            if self._thrust is not None:
+                self._draw_thrust_bar()
+                self._draw_thrust_text()
 
             pygame.display.flip()
             self._clock.tick(self.FPS)
 
-    def __enter__(self):
-        self.start()
-        self._run()
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
         pygame.quit()
-        self.join(timeout=self._thread_timeout)

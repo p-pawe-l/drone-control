@@ -30,8 +30,15 @@ uv run run.py --uri "drone_uri" --gui
 uv run run.py --uri "drone_uri" -g
 ```
 
-* Launch with CLI (in progress, not active for now)
+* Launch with TUI
 ```
-uv run run.py --uri "drone_uri" --cli
-uv run run.py --uri "drone_uri" --c
+uv run run.py --tui
+uv run run.py -t
 ```
+
+### DroneControlTUI - Terminal User Interface for Controlling Bitcraze drones
+---
+
+Visualization:
+
+![vis](docs/tui.png)
