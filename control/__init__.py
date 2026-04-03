@@ -1,8 +1,10 @@
-from controller import SwarmDroneController
-from keyboard_man import KeyboardReader
+from control.controller import SwarmDroneController
+from control.keyboard_man import KeyboardReader
+from control.mock_controller import MockDroneController
 
 __all__ = [
     "SwarmDroneController",
+    "MockDroneController",
     "KeyboardReader"
 ]
 

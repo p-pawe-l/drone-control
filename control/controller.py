@@ -1,15 +1,18 @@
 import typing
+import time
 
 import cflib
-import time
 from cflib.crazyflie import Crazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 
-from master_slave_com import Slave, Event
+from master_slave_com import Slave
+from master_slave_com.event import EventType
 
 @typing.final
 class SwarmDroneController(Slave):
+    SLAVE_NAME: str = "CONTROLLER"
+    
     DEFAULT_H: float = 0.1 # m
     DEFAULT_V: float = 1 # cm/s
     DEFAULT_FREQ: float = 2000 # Hz
@@ -17,13 +20,12 @@ class SwarmDroneController(Slave):
     MIN_THRUST: int = 0x0000
     MAX_THRUST: int = 0xFFFF
 
-    def __init__(self, uri: str):
-        super.__init__()
+    def __init__(self, master, uri: str, drone_vel: float | None = None, freq: float | None = None):
         cflib.crtp.init_drivers()
         self.drone: SyncCrazyflie = SyncCrazyflie(uri, cf=Crazyflie(rw_cache='./cache'))
         self.drone.open_link()
 
-        response = self.drone.cf.platform.send_arming_request(True)
+        self.drone.cf.platform.send_arming_request(True)
 
         self.drone.cf.commander.send_setpoint(0, 0, 0, 0)
         time.sleep(1)
@@ -39,20 +41,10 @@ class SwarmDroneController(Slave):
         if freq is not None: assert (freq > 0)
         self.timestamp: float = (1 / (self.DEFAULT_FREQ if freq is None else freq))
 
-        self.input_queue: deque = input_queue
-        self.slave_queues: dict[EventTarget, deque] = slave_queues
-
         self.thrust: int = 16000
         self.thrust_jump: int = 1500
 
-        self.thread: threading.Thread = threading.Thread(
-            target=self._controller_loop,
-            daemon=True
-        )
-        self.thread.start()
-
-        # Broadcast initial state to all slaves
-        self._broadcast_thrust()
+        super().__init__(master=master, slave_name=self.SLAVE_NAME)
 
     def set_freq(self, n_freq: float) -> None:
         assert (n_freq > 0)
@@ -108,22 +100,23 @@ class SwarmDroneController(Slave):
             'min': self.MIN_THRUST,
             'max': self.MAX_THRUST,
         }
-        for target, queue in self.slave_queues.items():
-            queue.append(Event(
-                target=target,
-                event_type=EventType.THRUST_UPDATE,
-                data=data,
-            ))
+        for slave_name in self.master.slaves:
+            if slave_name != self.slave_name:
+                self.send_event(
+                    data=data,
+                    receiver=slave_name,
+                    event_type=EventType.INCREASE_THRUST,
+                )
 
-    def _controller_loop(self):
-        with self.drone as drone:
+    def run(self) -> None:
+        self._broadcast_thrust()
+        with self.drone:
             while True:
-                if len(self.input_queue) > 0:
-                    event: Event = self.input_queue.popleft()
-                    if len(self.input_queue) > 1:
-                        continue
-
-                    if event.event_type == EventType.INCREASE_THRUST:
+                result = self.read_event()
+                if result is not None:
+                    event_type, _ = result
+                    if event_type == EventType.INCREASE_THRUST:
                         self.increase_thrust()
-                    elif event.event_type == EventType.DECREASE_THRUST:
+                    elif event_type == EventType.DECREASE_THRUST:
                         self.decrease_thrust()
+                time.sleep(self.timestamp)

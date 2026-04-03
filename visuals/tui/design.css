@@ -1,0 +1,290 @@
+Screen {
+	background: #1a1b26;
+	color: #c0caf5;
+}
+
+/* URI screen */
+
+URIScreen { align: center middle; }
+
+#banner {
+	color: #7dcfff;
+	text-align: center;
+	text-style: bold;
+	margin-bottom: 0;
+}
+
+#subtitle {
+	text-align: center;
+	color: #7aa2f7;
+	margin-bottom: 2;
+}
+
+#uri-container {
+	width: 62;
+	height: auto;
+	border: round #7aa2f7;
+	background: #1a1b26;
+	padding: 1 2;
+}
+
+#uri-label { color: #9ece6a; margin-bottom: 1; }
+#ip-label  { color: #9ece6a; margin-bottom: 1; margin-top: 0; }
+
+#error-msg { color: #f7768e; margin-bottom: 1; }
+
+/* Control screen */
+
+#title-bar {
+	height: 3;
+	border: heavy #7aa2f7;
+	background: #1a1b26;
+	margin: 1 1 0 1;
+	padding: 0 2;
+	content-align: left middle;
+	color: #c0caf5;
+	text-style: bold;
+}
+
+ControlScreen {
+	layout: vertical;
+	background: #1a1b26;
+}
+
+#main-area {
+	layout: horizontal;
+	height: 1fr;
+}
+
+#left-panel {
+	layout: horizontal;
+	width: 1fr;
+	border: round #565f89;
+	background: #1a1b26;
+	margin: 1 0 1 1;
+	padding: 1 1;
+}
+
+#right-panel {
+	width: 1fr;
+	border: round #565f89;
+	background: #1a1b26;
+	margin: 1 1 1 1;
+	padding: 1;
+}
+
+DronePositionMap {
+	width: 1fr;
+	height: 1fr;
+	color: #7dcfff;
+}
+
+#map-title {
+	color: #9ece6a;
+	text-style: bold;
+	margin-bottom: 1;
+}
+
+#data-col {
+	width: 1fr;
+}
+
+#uri-bar {
+	layout: horizontal;
+	height: 3;
+	border: round #7aa2f7;
+	background: #1a1b26;
+	margin: 1;
+	padding: 0;
+}
+
+.status-part {
+	width: 1fr;
+	padding: 0 1;
+	content-align: left middle;
+	color: #9ece6a;
+}
+
+#status-uri,
+#status-ip {
+	border-right: solid #565f89;
+}
+
+.panel-title {
+	color: #c0caf5;
+	text-style: bold;
+	margin-bottom: 1;
+}
+
+.data-box {
+	border: round #565f89;
+	background: #1a1b26;
+	padding: 1 1;
+	height: auto;
+	margin-bottom: 0;
+}
+
+#motion-row {
+	layout: horizontal;
+	width: 1fr;
+	height: auto;
+	margin-bottom: 0;
+}
+
+#mid-gap-row {
+	layout: horizontal;
+	width: 1fr;
+	height: auto;
+	margin-bottom: 0;
+}
+
+#mid-gap-spacer {
+	width: 0;
+}
+
+.battery-slot {
+	width: 1fr;
+}
+
+#swarm-entities {
+	height: 1fr;
+}
+
+#drone-grid {
+	layout: grid;
+	grid-size: 2;
+	grid-gutter: 0;
+	height: auto;
+}
+
+HorizontalBatteryBar {
+	width: 1fr;
+	height: 5;
+	border: round #565f89;
+	background: #1a1b26;
+	color: #9ece6a;
+	padding: 1 1;
+}
+
+.motion-box {
+	width: 1fr;
+}
+
+.table-title {
+	color: #9ece6a;
+	text-style: bold;
+	margin-bottom: 0;
+}
+
+.swarm-entity-title {
+	color: #c0caf5;
+	margin-top: 0;
+}
+
+.swarm-section-title {
+	color: #9ece6a;
+	text-style: bold;
+	margin: 0;
+}
+
+
+.swarm-title-box {
+	width: 1fr;
+	height: 3;
+	border: round #565f89;
+	background: #1a1b26;
+	padding: 0 1;
+	content-align: left middle;
+	margin-bottom: 1;
+}
+
+.drone-box {
+	height: 3;
+	border: round #565f89;
+	background: #1a1b26;
+	padding: 0 1;
+	content-align: center middle;
+	border-title-align: center;
+}
+
+.drone-box-name {
+	text-align: center;
+}
+
+.drone-mother {
+	border: round #e0af68;
+	color: #e0af68;
+	border-title-color: #e0af68;
+}
+
+.drone-child {
+	border: round #565f89;
+	color: #737aa2;
+	border-title-color: #737aa2;
+}
+
+.drone-spacer {
+	height: 1fr;
+}
+
+.drone-thrust {
+	color: #e0af68;
+	text-style: bold;
+}
+
+.control-hint { color: #7aa2f7; margin-bottom: 1; }
+
+VerticalThrustBar {
+	width: 9;
+	height: 1fr;
+	border: round #565f89;
+	background: #1a1b26;
+	color: #7dcfff;
+	padding: 0;
+}
+
+/* Data tables */
+
+DataTable {
+	background: #1a1b26;
+	color: #c0caf5;
+	height: auto;
+}
+
+DataTable > .datatable--header {
+	background: #1a1b26;
+	color: #9ece6a;
+	text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+	background: #1a1b26;
+	color: #c0caf5;
+}
+
+/* Shared */
+
+Input {
+	background: #1a1b26;
+	color: #c0caf5;
+	border: round #565f89;
+	margin-bottom: 1;
+}
+Input:focus {
+	border: round #7dcfff;
+	background: #1a1b26;
+}
+
+Button {
+	background: #7aa2f7;
+	color: #1a1b26;
+	border: round #7aa2f7;
+	text-style: bold;
+	width: 100%;
+	height: 1;
+}
+Button:hover { background: #7dcfff; }
+Button:focus { background: #7dcfff; }
+
+Footer { background: #1a1b26; color: #c0caf5; }
+Footer > .footer--key { background: #1a1b26; color: #7dcfff; }
